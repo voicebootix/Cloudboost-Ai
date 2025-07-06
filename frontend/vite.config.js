@@ -32,6 +32,9 @@ export default defineConfig({
       }
     }
   },
+  css: {
+    postcss: './postcss.config.js'
+  },
   define: {
     'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://your-backend-url.onrender.com/api')
   }

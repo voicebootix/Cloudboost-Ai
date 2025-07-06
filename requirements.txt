@@ -1,0 +1,3 @@
+# Root requirements.txt - Forces Python detection
+# This file points to the backend requirements
+-r backend/requirements.txt 
