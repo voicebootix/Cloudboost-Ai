@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
   Zap, Globe, Mail, Phone, MapPin, ArrowRight,
-  Facebook, Twitter, LinkedIn, Instagram, Youtube
+  Facebook, Twitter, Linkedin, Instagram, Youtube
 } from 'lucide-react'
 
 const Footer = () => {
@@ -56,7 +56,7 @@ const Footer = () => {
   const socialLinks = [
     { name: 'Facebook', icon: Facebook, url: 'https://facebook.com' },
     { name: 'Twitter', icon: Twitter, url: 'https://twitter.com' },
-    { name: 'LinkedIn', icon: LinkedIn, url: 'https://linkedin.com' },
+    { name: 'LinkedIn', icon: Linkedin, url: 'https://linkedin.com' },
     { name: 'Instagram', icon: Instagram, url: 'https://instagram.com' },
     { name: 'YouTube', icon: Youtube, url: 'https://youtube.com' }
   ]
