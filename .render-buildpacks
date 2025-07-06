@@ -1,10 +1,14 @@
 # Render Buildpacks Configuration
 # This file explicitly specifies which buildpacks to use for each service
 
-# Backend Service - Python
+# Backend Service - Python (Force Python buildpack)
 cloudboost-ai-backend:
   - heroku/python
 
 # Frontend Service - Node.js
 cloudboost-ai-frontend:
-  - heroku/nodejs 
+  - heroku/nodejs
+
+# Default buildpack for the project (Python for backend)
+*:
+  - heroku/python 

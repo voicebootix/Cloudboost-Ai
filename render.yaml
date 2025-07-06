@@ -4,8 +4,15 @@ services:
     name: cloudboost-ai-backend
     env: python
     region: oregon
-    buildCommand: "cd backend && pip install -r requirements.txt"
-    startCommand: "cd backend && gunicorn --bind 0.0.0.0:$PORT src.main:app"
+    buildCommand: |
+      echo "Installing Python dependencies..."
+      cd backend
+      pip install -r requirements.txt
+      echo "Python dependencies installed successfully"
+    startCommand: |
+      echo "Starting Flask application..."
+      cd backend
+      gunicorn --bind 0.0.0.0:$PORT src.main:app
     plan: starter
     healthCheckPath: /health
     envVars:
@@ -38,8 +45,17 @@ services:
     name: cloudboost-ai-frontend
     env: node
     region: oregon
-    buildCommand: "cd frontend && npm install --legacy-peer-deps && npm run build"
-    startCommand: "cd frontend && npm run preview -- --host 0.0.0.0 --port $PORT"
+    buildCommand: |
+      echo "Installing Node.js dependencies..."
+      cd frontend
+      npm install --legacy-peer-deps
+      echo "Building React application..."
+      npm run build
+      echo "Frontend build completed"
+    startCommand: |
+      echo "Starting React application..."
+      cd frontend
+      npm run preview -- --host 0.0.0.0 --port $PORT
     plan: starter
     envVars:
       - key: VITE_API_URL
