@@ -1,10 +1,10 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, JSON, Float
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Enum, JSON, Float
 from sqlalchemy.orm import relationship
 import enum
 
-Base = declarative_base()
+# Import db from database module
+from ..database import db
 
 class MetricType(enum.Enum):
     COUNTER = "counter"
@@ -29,29 +29,29 @@ class ReportFrequency(enum.Enum):
     QUARTERLY = "quarterly"
     YEARLY = "yearly"
 
-class Analytics(Base):
+class Analytics(db.Model):
     __tablename__ = 'analytics'
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(Integer, ForeignKey('tenant.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
     
     # Metric Information
-    metric_name = Column(String(200), nullable=False)
-    metric_type = Column(Enum(MetricType), nullable=False)
-    category = Column(String(100), nullable=False)
+    metric_name = db.Column(db.String(200), nullable=False)
+    metric_type = db.Column(Enum(MetricType), nullable=False)
+    category = db.Column(db.String(100), nullable=False)
     
     # Metric Value
-    value = Column(Float, nullable=False)
+    value = db.Column(Float, nullable=False)
     
     # Context and Dimensions
-    dimensions = Column(JSON)  # Additional context like platform, campaign_id, etc.
+    dimensions = db.Column(JSON)  # Additional context like platform, campaign_id, etc.
     
     # Time-based tracking
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    date = Column(DateTime, nullable=False)  # Date for aggregation
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    date = db.Column(db.DateTime, nullable=False)  # Date for aggregation
     
     # Tags for filtering
-    tags = Column(JSON)
+    tags = db.Column(JSON)
     
     # Relationships
     tenant = relationship("Tenant", back_populates="analytics")
@@ -73,41 +73,41 @@ class Analytics(Base):
             'tags': self.tags
         }
 
-class Report(Base):
+class Report(db.Model):
     __tablename__ = 'report'
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(Integer, ForeignKey('tenant.id'), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     # Report Information
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
-    report_type = Column(Enum(ReportType), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    report_type = db.Column(Enum(ReportType), nullable=False)
     
     # Report Configuration
-    config = Column(JSON)  # Chart types, filters, etc.
-    filters = Column(JSON)  # Date ranges, dimensions, etc.
+    config = db.Column(JSON)  # Chart types, filters, etc.
+    filters = db.Column(JSON)  # Date ranges, dimensions, etc.
     
     # Scheduling
-    is_scheduled = Column(Boolean, default=False)
-    frequency = Column(Enum(ReportFrequency))
-    next_run_at = Column(DateTime)
-    last_run_at = Column(DateTime)
+    is_scheduled = db.Column(db.Boolean, default=False)
+    frequency = db.Column(Enum(ReportFrequency))
+    next_run_at = db.Column(db.DateTime)
+    last_run_at = db.Column(db.DateTime)
     
     # Report Recipients
-    recipients = Column(JSON)  # Email addresses for scheduled reports
+    recipients = db.Column(JSON)  # Email addresses for scheduled reports
     
     # Report Data
-    data = Column(JSON)  # Cached report data
-    chart_config = Column(JSON)  # Chart configuration
+    data = db.Column(JSON)  # Cached report data
+    chart_config = db.Column(JSON)  # Chart configuration
     
     # Status
-    is_active = Column(Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     tenant = relationship("Tenant", back_populates="reports")
@@ -138,50 +138,50 @@ class Report(Base):
             'updated_at': self.updated_at.isoformat()
         }
 
-class KPI(Base):
+class KPI(db.Model):
     __tablename__ = 'kpi'
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(Integer, ForeignKey('tenant.id'), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     # KPI Information
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
-    category = Column(String(100), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(100), nullable=False)
     
     # KPI Configuration
-    metric_query = Column(JSON)  # Query configuration to calculate KPI
-    target_value = Column(Float)
-    warning_threshold = Column(Float)
-    critical_threshold = Column(Float)
+    metric_query = db.Column(JSON)  # Query configuration to calculate KPI
+    target_value = db.Column(Float)
+    warning_threshold = db.Column(Float)
+    critical_threshold = db.Column(Float)
     
     # Current Values
-    current_value = Column(Float, default=0.0)
-    previous_value = Column(Float, default=0.0)
-    change_percentage = Column(Float, default=0.0)
+    current_value = db.Column(Float, default=0.0)
+    previous_value = db.Column(Float, default=0.0)
+    change_percentage = db.Column(Float, default=0.0)
     
     # Trend Analysis
-    trend = Column(String(20))  # 'up', 'down', 'stable'
+    trend = db.Column(db.String(20))  # 'up', 'down', 'stable'
     
     # Display Settings
-    display_format = Column(String(20), default='number')  # 'number', 'percentage', 'currency'
-    currency_symbol = Column(String(5), default='$')
+    display_format = db.Column(db.String(20), default='number')  # 'number', 'percentage', 'currency'
+    currency_symbol = db.Column(db.String(5), default='$')
     
     # Alert Settings
-    alert_on_threshold = Column(Boolean, default=False)
-    alert_recipients = Column(JSON)
+    alert_on_threshold = db.Column(db.Boolean, default=False)
+    alert_recipients = db.Column(JSON)
     
     # Update Settings
-    update_frequency = Column(String(20), default='daily')  # 'hourly', 'daily', 'weekly'
-    last_calculated_at = Column(DateTime)
+    update_frequency = db.Column(db.String(20), default='daily')  # 'hourly', 'daily', 'weekly'
+    last_calculated_at = db.Column(db.DateTime)
     
     # Status
-    is_active = Column(Boolean, default=True)
+    is_active = db.Column(db.Boolean, default=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     tenant = relationship("Tenant", back_populates="kpis")
