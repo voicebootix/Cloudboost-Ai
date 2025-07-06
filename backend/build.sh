@@ -1,30 +1,44 @@
 #!/bin/bash
 
-# CloudBoost AI Backend - Render Build Script
+# Enhanced build script with pandas compatibility fixes
+set -e
 
-echo "Starting CloudBoost AI Backend build for Render..."
+echo "🔧 Starting enhanced build process..."
 
-# Install Python dependencies
-echo "Installing Python dependencies..."
-pip install --upgrade pip
-pip install -r requirements.txt
+# Upgrade pip first
+echo "📦 Upgrading pip..."
+python -m pip install --upgrade pip
 
-# Create necessary directories
-echo "Creating application directories..."
-mkdir -p logs
-mkdir -p uploads
-mkdir -p temp
+# Check Python version
+echo "🐍 Python version: $(python --version)"
 
-# Set proper permissions
-chmod 755 logs
-chmod 755 uploads
-chmod 755 temp
+# Primary installation strategy: Use binary wheels
+echo "🎯 Attempting primary installation with binary wheels..."
+if pip install --only-binary=:all: -r requirements.txt; then
+    echo "✅ Primary installation successful!"
+else
+    echo "❌ Primary installation failed, trying fallback strategies..."
+    
+    # Fallback 1: Install pandas separately with specific version
+    echo "🔄 Fallback 1: Installing pandas with specific version..."
+    pip install --only-binary=:all: pandas==2.2.3 numpy==1.24.0 flask==2.3.0
+    
+    # Fallback 2: Try without binary restriction for other packages
+    echo "🔄 Fallback 2: Installing remaining packages..."
+    pip install flask>=2.3.0
+    
+    # Fallback 3: Manual pandas installation if needed
+    if ! python -c "import pandas"; then
+        echo "🔄 Fallback 3: Manual pandas installation..."
+        pip install --force-reinstall --only-binary=:all: pandas>=2.2.3
+    fi
+fi
 
 # Verify installation
-echo "Verifying installation..."
-python -c "import flask; print(f'Flask version: {flask.__version__}')"
-python -c "import gunicorn; print(f'Gunicorn version: {gunicorn.__version__}')"
+echo "🔍 Verifying installations..."
+python -c "import pandas; print(f'✅ pandas version: {pandas.__version__}')"
+python -c "import numpy; print(f'✅ numpy version: {numpy.__version__}')"
+python -c "import flask; print(f'✅ flask version: {flask.__version__}')"
 
-echo "Build completed successfully!"
-echo "Ready to start with: gunicorn --bind 0.0.0.0:\$PORT src.main:app"
+echo "🎉 Build completed successfully!"
 
