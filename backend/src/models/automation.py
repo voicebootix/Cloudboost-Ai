@@ -1,10 +1,10 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, JSON, Float
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Enum, JSON, Float
 from sqlalchemy.orm import relationship
 import enum
 
-Base = declarative_base()
+# Import db from database module
+from ..database import db
 
 class WorkflowStatus(enum.Enum):
     DRAFT = "draft"
@@ -43,41 +43,41 @@ class ExecutionStatus(enum.Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
-class Workflow(Base):
+class Workflow(db.Model):
     __tablename__ = 'workflow'
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(Integer, ForeignKey('tenant.id'), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     # Workflow Information
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
     
     # Workflow Configuration
-    trigger_type = Column(Enum(WorkflowTrigger), nullable=False)
-    trigger_config = Column(JSON)
+    trigger_type = db.Column(Enum(WorkflowTrigger), nullable=False)
+    trigger_config = db.Column(JSON)
     
     # Status
-    status = Column(Enum(WorkflowStatus), default=WorkflowStatus.DRAFT)
+    status = db.Column(Enum(WorkflowStatus), default=WorkflowStatus.DRAFT)
     
     # Execution Settings
-    is_active = Column(Boolean, default=False)
-    max_executions = Column(Integer, default=0)  # 0 = unlimited
-    execution_count = Column(Integer, default=0)
+    is_active = db.Column(db.Boolean, default=False)
+    max_executions = db.Column(db.Integer, default=0)  # 0 = unlimited
+    execution_count = db.Column(db.Integer, default=0)
     
     # Scheduling (for scheduled workflows)
-    schedule_pattern = Column(String(100))  # cron pattern
-    next_run_at = Column(DateTime)
-    last_run_at = Column(DateTime)
+    schedule_pattern = db.Column(db.String(100))  # cron pattern
+    next_run_at = db.Column(db.DateTime)
+    last_run_at = db.Column(db.DateTime)
     
     # Performance Metrics
-    success_rate = Column(Float, default=0.0)
-    average_execution_time = Column(Integer, default=0)  # in seconds
+    success_rate = db.Column(Float, default=0.0)
+    average_execution_time = db.Column(db.Integer, default=0)  # in seconds
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     tenant = relationship("Tenant", back_populates="workflows")
@@ -110,41 +110,41 @@ class Workflow(Base):
             'updated_at': self.updated_at.isoformat()
         }
 
-class WorkflowStep(Base):
+class WorkflowStep(db.Model):
     __tablename__ = 'workflow_step'
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(Integer, ForeignKey('tenant.id'), nullable=False)
-    workflow_id = Column(Integer, ForeignKey('workflow.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
+    workflow_id = db.Column(db.Integer, db.ForeignKey('workflow.id'), nullable=False)
     
     # Step Information
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
-    step_type = Column(Enum(StepType), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    step_type = db.Column(Enum(StepType), nullable=False)
     
     # Step Configuration
-    config = Column(JSON)
+    config = db.Column(JSON)
     
     # Step Order
-    order = Column(Integer, nullable=False)
+    order = db.Column(db.Integer, nullable=False)
     
     # Conditional Logic
-    condition = Column(JSON)  # Conditions for this step to execute
+    condition = db.Column(JSON)  # Conditions for this step to execute
     
     # Timing
-    delay_minutes = Column(Integer, default=0)
+    delay_minutes = db.Column(db.Integer, default=0)
     
     # Error Handling
-    on_error = Column(String(20), default='stop')  # 'stop', 'continue', 'retry'
-    max_retries = Column(Integer, default=0)
+    on_error = db.Column(db.String(20), default='stop')  # 'stop', 'continue', 'retry'
+    max_retries = db.Column(db.Integer, default=0)
     
     # Performance Tracking
-    execution_count = Column(Integer, default=0)
-    success_count = Column(Integer, default=0)
+    execution_count = db.Column(db.Integer, default=0)
+    success_count = db.Column(db.Integer, default=0)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     tenant = relationship("Tenant", back_populates="workflow_steps")
@@ -180,39 +180,39 @@ class WorkflowStep(Base):
             'updated_at': self.updated_at.isoformat()
         }
 
-class WorkflowExecution(Base):
+class WorkflowExecution(db.Model):
     __tablename__ = 'workflow_execution'
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    tenant_id = Column(Integer, ForeignKey('tenant.id'), nullable=False)
-    workflow_id = Column(Integer, ForeignKey('workflow.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenant.id'), nullable=False)
+    workflow_id = db.Column(db.Integer, db.ForeignKey('workflow.id'), nullable=False)
     
     # Execution Information
-    status = Column(Enum(ExecutionStatus), default=ExecutionStatus.PENDING)
+    status = db.Column(Enum(ExecutionStatus), default=ExecutionStatus.PENDING)
     
     # Trigger Context
-    trigger_data = Column(JSON)
+    trigger_data = db.Column(JSON)
     
     # Execution Progress
-    current_step = Column(Integer, default=0)
-    completed_steps = Column(Integer, default=0)
-    total_steps = Column(Integer, default=0)
+    current_step = db.Column(db.Integer, default=0)
+    completed_steps = db.Column(db.Integer, default=0)
+    total_steps = db.Column(db.Integer, default=0)
     
     # Execution Results
-    results = Column(JSON)
-    error_message = Column(Text)
+    results = db.Column(JSON)
+    error_message = db.Column(db.Text)
     
     # Timing
-    started_at = Column(DateTime)
-    completed_at = Column(DateTime)
-    duration_seconds = Column(Integer, default=0)
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    duration_seconds = db.Column(db.Integer, default=0)
     
     # Context Data
-    context = Column(JSON)  # Data passed between steps
+    context = db.Column(JSON)  # Data passed between steps
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     tenant = relationship("Tenant", back_populates="workflow_executions")
