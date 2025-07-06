@@ -7,7 +7,8 @@ services:
     buildCommand: |
       echo "Installing Python dependencies..."
       cd backend
-      pip install -r requirements.txt
+      pip install --upgrade pip
+      pip install --only-binary=:all: -r requirements.txt
       echo "Python dependencies installed successfully"
     startCommand: |
       echo "Starting Flask application..."
@@ -19,7 +20,7 @@ services:
       - key: FLASK_ENV
         value: production
       - key: PYTHON_VERSION
-        value: "3.11.7"
+        value: "3.12.7"
       - key: DATABASE_URL
         fromDatabase:
           name: cloudboost-ai-db
