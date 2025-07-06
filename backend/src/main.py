@@ -465,17 +465,22 @@ def missing_token_callback(error):
     return jsonify({'error': 'Authorization token is required'}), 401
 
 # Application startup
-@app.before_first_request
-def startup():
-    """Initialize application on startup"""
-    try:
-        # Create database tables
-        create_tables()
-        logger.info("Application started successfully")
-        
-    except Exception as e:
-        logger.error(f"Application startup error: {e}")
-        raise
+def create_app():
+    """Create and configure the Flask application"""
+    with app.app_context():
+        try:
+            # Create database tables
+            create_tables()
+            logger.info("Application started successfully")
+            
+        except Exception as e:
+            logger.error(f"Application startup error: {e}")
+            raise
+    
+    return app
+
+# Initialize the app
+create_app()
 
 # Welcome endpoint
 @app.route('/')
