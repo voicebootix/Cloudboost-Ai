@@ -6,7 +6,7 @@ Main Flask Application with Real Functionality
 import os
 import logging
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, current_app
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_limiter import Limiter
@@ -50,17 +50,45 @@ limiter = Limiter(
 )
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
-# Initialize database
-db = init_database(app)
+# Remove global service/db initialization here
+# (db, ai_service, communication_service, etc.)
 
-# Initialize services
-ai_service = AIService(config)
-communication_service = CommunicationService(config)
-social_service = SocialService(config)
-crm_service = CRMService(db)
-content_service = ContentService(db, ai_service)
-automation_service = AutomationService(db, ai_service, communication_service)
-analytics_service = AnalyticsService(db)
+# Application startup
+
+def create_app():
+    """Create and configure the Flask application"""
+    with app.app_context():
+        try:
+            # Initialize database and services within app context
+            db = init_database(app)
+            ai_service = AIService(config)
+            communication_service = CommunicationService(config)
+            social_service = SocialService(config)
+            crm_service = CRMService(db)
+            content_service = ContentService(db, ai_service)
+            automation_service = AutomationService(db, ai_service, communication_service)
+            analytics_service = AnalyticsService(db)
+
+            # Attach to app for access in routes
+            app.db = db
+            app.ai_service = ai_service
+            app.communication_service = communication_service
+            app.social_service = social_service
+            app.crm_service = crm_service
+            app.content_service = content_service
+            app.automation_service = automation_service
+            app.analytics_service = analytics_service
+
+            # Create database tables
+            create_tables()
+            logger.info("Application started successfully")
+        except Exception as e:
+            logger.error(f"Application startup error: {e}")
+            raise
+    return app
+
+# Set app for WSGI servers
+app = create_app()
 
 # Health check endpoint
 @app.route('/health', methods=['GET'])
@@ -107,7 +135,7 @@ def login():
         if user and user.check_password(password) and user.status == 'active':
             # Update last login
             user.last_login = datetime.utcnow()
-            db.session.commit()
+            app.db.session.commit()
             
             # Create access token
             access_token = create_access_token(
@@ -157,8 +185,8 @@ def register():
                 domain=data['tenant_domain'],
                 status='active'
             )
-            db.session.add(tenant)
-            db.session.flush()
+            app.db.session.add(tenant)
+            app.db.session.flush()
         
         # Create user
         user = User(
@@ -171,8 +199,8 @@ def register():
         )
         user.set_password(data['password'])
         
-        db.session.add(user)
-        db.session.commit()
+        app.db.session.add(user)
+        app.db.session.commit()
         
         return jsonify({
             'message': 'User registered successfully',
@@ -181,7 +209,7 @@ def register():
         
     except Exception as e:
         logger.error(f"Registration error: {e}")
-        db.session.rollback()
+        app.db.session.rollback()
         return jsonify({'error': 'Registration failed'}), 500
 
 # Dashboard endpoint
@@ -194,10 +222,10 @@ def dashboard():
         
         # Get dashboard data
         dashboard_data = {
-            'stats': analytics_service.get_dashboard_stats(user_id),
-            'recent_activities': analytics_service.get_recent_activities(user_id),
-            'kpis': analytics_service.get_kpis(user_id),
-            'notifications': analytics_service.get_notifications(user_id),
+            'stats': app.analytics_service.get_dashboard_stats(user_id),
+            'recent_activities': app.analytics_service.get_recent_activities(user_id),
+            'kpis': app.analytics_service.get_kpis(user_id),
+            'notifications': app.analytics_service.get_notifications(user_id),
             'quick_actions': [
                 {'name': 'Create Content', 'url': '/content/create', 'icon': 'pen'},
                 {'name': 'New Campaign', 'url': '/campaigns/create', 'icon': 'megaphone'},
@@ -223,7 +251,7 @@ def get_content():
         per_page = request.args.get('per_page', 20, type=int)
         content_type = request.args.get('type')
         
-        content_list = content_service.get_content_list(user_id, page, per_page, content_type)
+        content_list = app.content_service.get_content_list(user_id, page, per_page, content_type)
         return jsonify(content_list)
         
     except Exception as e:
@@ -238,7 +266,7 @@ def create_content():
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        content = content_service.create_content(user_id, data)
+        content = app.content_service.create_content(user_id, data)
         return jsonify(content.to_dict()), 201
         
     except Exception as e:
@@ -251,7 +279,7 @@ def get_content_detail(content_id):
     """Get content details"""
     try:
         user_id = get_jwt_identity()
-        content = content_service.get_content_by_id(user_id, content_id)
+        content = app.content_service.get_content_by_id(user_id, content_id)
         
         if not content:
             return jsonify({'error': 'Content not found'}), 404
@@ -270,7 +298,7 @@ def update_content(content_id):
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        content = content_service.update_content(user_id, content_id, data)
+        content = app.content_service.update_content(user_id, content_id, data)
         if not content:
             return jsonify({'error': 'Content not found'}), 404
         
@@ -287,7 +315,7 @@ def delete_content(content_id):
     try:
         user_id = get_jwt_identity()
         
-        if content_service.delete_content(user_id, content_id):
+        if app.content_service.delete_content(user_id, content_id):
             return jsonify({'message': 'Content deleted successfully'})
         
         return jsonify({'error': 'Content not found'}), 404
@@ -311,7 +339,7 @@ def generate_content():
         if not prompt:
             return jsonify({'error': 'Prompt is required'}), 400
         
-        generated_content = ai_service.generate_content(prompt, content_type)
+        generated_content = app.ai_service.generate_content(prompt, content_type)
         return jsonify(generated_content)
         
     except Exception as e:
@@ -329,7 +357,7 @@ def get_customers():
         per_page = request.args.get('per_page', 20, type=int)
         search = request.args.get('search', '')
         
-        customers = crm_service.get_customers(user_id, page, per_page, search)
+        customers = app.crm_service.get_customers(user_id, page, per_page, search)
         return jsonify(customers)
         
     except Exception as e:
@@ -344,7 +372,7 @@ def create_customer():
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        customer = crm_service.create_customer(user_id, data)
+        customer = app.crm_service.create_customer(user_id, data)
         return jsonify(customer.to_dict()), 201
         
     except Exception as e:
@@ -360,7 +388,7 @@ def send_email():
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        result = communication_service.send_email(
+        result = app.communication_service.send_email(
             to_email=data.get('to_email'),
             subject=data.get('subject'),
             content=data.get('content'),
@@ -381,7 +409,7 @@ def send_sms():
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        result = communication_service.send_sms(
+        result = app.communication_service.send_sms(
             to_number=data.get('to_number'),
             message=data.get('message')
         )
@@ -399,7 +427,7 @@ def get_social_accounts():
     """Get social media accounts"""
     try:
         user_id = get_jwt_identity()
-        accounts = social_service.get_accounts(user_id)
+        accounts = app.social_service.get_accounts(user_id)
         return jsonify(accounts)
         
     except Exception as e:
@@ -414,7 +442,7 @@ def create_social_post():
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        post = social_service.create_post(user_id, data)
+        post = app.social_service.create_post(user_id, data)
         return jsonify(post.to_dict()), 201
         
     except Exception as e:
@@ -430,7 +458,7 @@ def get_analytics_dashboard():
         user_id = get_jwt_identity()
         date_range = request.args.get('date_range', '30d')
         
-        analytics = analytics_service.get_dashboard_analytics(user_id, date_range)
+        analytics = app.analytics_service.get_dashboard_analytics(user_id, date_range)
         return jsonify(analytics)
         
     except Exception as e:
@@ -463,23 +491,6 @@ def invalid_token_callback(error):
 @jwt.unauthorized_loader
 def missing_token_callback(error):
     return jsonify({'error': 'Authorization token is required'}), 401
-
-# Application startup
-
-def create_app():
-    """Create and configure the Flask application"""
-    with app.app_context():
-        try:
-            # Create database tables
-            create_tables()
-            logger.info("Application started successfully")
-        except Exception as e:
-            logger.error(f"Application startup error: {e}")
-            raise
-    return app
-
-# Set app for WSGI servers
-app = create_app()
 
 # Welcome endpoint
 @app.route('/')
