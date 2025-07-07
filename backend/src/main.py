@@ -465,17 +465,21 @@ def missing_token_callback(error):
     return jsonify({'error': 'Authorization token is required'}), 401
 
 # Application startup
-@app.before_first_request
-def startup():
-    """Initialize application on startup"""
-    try:
-        # Create database tables
-        create_tables()
-        logger.info("Application started successfully")
-        
-    except Exception as e:
-        logger.error(f"Application startup error: {e}")
-        raise
+
+def create_app():
+    """Create and configure the Flask application"""
+    with app.app_context():
+        try:
+            # Create database tables
+            create_tables()
+            logger.info("Application started successfully")
+        except Exception as e:
+            logger.error(f"Application startup error: {e}")
+            raise
+    return app
+
+# Set app for WSGI servers
+app = create_app()
 
 # Welcome endpoint
 @app.route('/')
@@ -500,7 +504,6 @@ def welcome():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'True').lower() == 'true'
-    
     app.run(
         host='0.0.0.0',
         port=port,
