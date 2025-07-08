@@ -8,8 +8,10 @@ services:
       echo "Installing Python dependencies..."
       cd backend
       python --version
-      pip install --upgrade pip
-      pip install --only-binary=:all: -r requirements.txt
+      pip install --upgrade pip==24.0
+      pip install --only-binary=all --no-cache-dir --prefer-binary pandas==2.1.4
+      pip install --only-binary=all --no-cache-dir --prefer-binary numpy==1.24.4
+      pip install --only-binary=all --no-cache-dir -r requirements.txt
       echo "Python dependencies installed successfully"
     startCommand: |
       echo "Starting Flask application..."

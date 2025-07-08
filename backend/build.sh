@@ -1,44 +1,26 @@
 #!/bin/bash
 
-# Enhanced build script with pandas compatibility fixes
-set -e
+echo "=== CloudBoost AI Backend Build Script ==="
+echo "Python version:"
+python --version
 
-echo "🔧 Starting enhanced build process..."
+echo "Pip version:"
+pip --version
 
-# Upgrade pip first
-echo "📦 Upgrading pip..."
-python -m pip install --upgrade pip
+echo "Upgrading pip..."
+pip install --upgrade pip==24.0
 
-# Check Python version
-echo "🐍 Python version: $(python --version)"
+echo "Installing critical dependencies with binary wheels..."
+pip install --only-binary=all --no-cache-dir --prefer-binary pandas==2.1.4
+pip install --only-binary=all --no-cache-dir --prefer-binary numpy==1.24.4
 
-# Primary installation strategy: Use binary wheels
-echo "🎯 Attempting primary installation with binary wheels..."
-if pip install --only-binary=:all: -r requirements.txt; then
-    echo "✅ Primary installation successful!"
-else
-    echo "❌ Primary installation failed, trying fallback strategies..."
-    
-    # Fallback 1: Install pandas separately with specific version
-    echo "🔄 Fallback 1: Installing pandas with specific version..."
-    pip install --only-binary=:all: pandas==2.2.3 numpy==1.24.0 flask==2.3.0
-    
-    # Fallback 2: Try without binary restriction for other packages
-    echo "🔄 Fallback 2: Installing remaining packages..."
-    pip install flask>=2.3.0
-    
-    # Fallback 3: Manual pandas installation if needed
-    if ! python -c "import pandas"; then
-        echo "🔄 Fallback 3: Manual pandas installation..."
-        pip install --force-reinstall --only-binary=:all: pandas>=2.2.3
-    fi
-fi
+echo "Installing remaining dependencies..."
+pip install --only-binary=all --no-cache-dir -r requirements.txt
 
-# Verify installation
-echo "🔍 Verifying installations..."
-python -c "import pandas; print(f'✅ pandas version: {pandas.__version__}')"
-python -c "import numpy; print(f'✅ numpy version: {numpy.__version__}')"
-python -c "import flask; print(f'✅ flask version: {flask.__version__}')"
+echo "Verifying installation..."
+python -c "import pandas; print(f'Pandas version: {pandas.__version__}')"
+python -c "import numpy; print(f'Numpy version: {numpy.__version__}')"
+python -c "import flask; print(f'Flask version: {flask.__version__}')"
 
-echo "🎉 Build completed successfully!"
+echo "Build completed successfully!"
 
