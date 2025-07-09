@@ -40,25 +40,27 @@ app = Flask(__name__)
 config = get_config()
 app.config.from_object(config)
 
-# Initialize extensions
-cors = CORS(app, origins=config.CORS_ORIGINS, supports_credentials=True)
-jwt = JWTManager(app)
-limiter = Limiter(
-    app,
-    key_func=get_remote_address,
-    default_limits=[config.RATELIMIT_DEFAULT]
-)
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
-
-# Remove global service/db initialization here
-# (db, ai_service, communication_service, etc.)
-
 # Application startup
-
 def create_app():
     """Create and configure the Flask application"""
     with app.app_context():
         try:
+            # Initialize Flask extensions within app context
+            cors = CORS(app, origins=config.CORS_ORIGINS, supports_credentials=True)
+            jwt = JWTManager(app)
+            limiter = Limiter(
+                app,
+                key_func=get_remote_address,
+                default_limits=[config.RATELIMIT_DEFAULT]
+            )
+            cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+            
+            # Attach extensions to app for access in routes
+            app.cors = cors
+            app.jwt = jwt
+            app.limiter = limiter
+            app.cache = cache
+            
             # Initialize database and services within app context
             db = init_database(app)
             ai_service = AIService(config)
@@ -116,7 +118,7 @@ def system_status():
 
 # Authentication endpoints
 @app.route('/auth/login', methods=['POST'])
-@limiter.limit("5 per minute")
+@app.limiter.limit("5 per minute")
 def login():
     """User login"""
     try:
@@ -160,7 +162,7 @@ def login():
         return jsonify({'error': 'Login failed'}), 500
 
 @app.route('/auth/register', methods=['POST'])
-@limiter.limit("3 per minute")
+@app.limiter.limit("3 per minute")
 def register():
     """User registration"""
     try:
@@ -480,15 +482,15 @@ def ratelimit_handler(e):
     return jsonify({'error': f'Rate limit exceeded: {e.description}'}), 429
 
 # JWT error handlers
-@jwt.expired_token_loader
+@app.jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
     return jsonify({'error': 'Token has expired'}), 401
 
-@jwt.invalid_token_loader
+@app.jwt.invalid_token_loader
 def invalid_token_callback(error):
     return jsonify({'error': 'Invalid token'}), 401
 
-@jwt.unauthorized_loader
+@app.jwt.unauthorized_loader
 def missing_token_callback(error):
     return jsonify({'error': 'Authorization token is required'}), 401
 
